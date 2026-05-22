@@ -1,20 +1,17 @@
 public interface Applicable {
-    default boolean isCustomerEligible(Customer x) {
-        if (x instanceof Member) {
-            return ((Member) x).getMembershipDuration() > 30;
-        }
+    default boolean isCustomerEligible(Customer customer) {
         return false;
     }
-
-    default boolean isMinimumPriceEligible(Order x) {
-        return x.getSubTotal() >= 100000;
+    
+    default boolean isMinimumPriceEligible(Order order) {
+        return false;
     }
-
-    default boolean isShippingFeeEligible(Order x) {
-        return x.getShippingFee() > 0;
+    
+    default double calculateDiscount(Order order) {
+        return 0.0;
     }
-
-    double calculateDiscount(Order x);
-    double calculateCashback(Order x);
-    double calculateShippingDiscount(Order x);
+    
+    default double calculateCashback(Order order) {
+        return 0.0;
+    }
 }

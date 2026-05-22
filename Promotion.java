@@ -1,42 +1,51 @@
 import java.time.LocalDate;
 
-public abstract class Promotion implements Applicable, Comparable<Promotion> {
+public abstract class Promotion {
     private String promoCode;
     private LocalDate startDate;
     private LocalDate endDate;
+    private double percentageDiscount;
+    private double maxDiscount;
+    private double minPurchase;
 
-    public Promotion(String promoCode, LocalDate startDate, LocalDate endDate) {
+    public Promotion(String promoCode, LocalDate startDate, LocalDate endDate, double percentageDiscount, double maxDiscount, double minPurchase) {
         this.promoCode = promoCode;
         this.startDate = startDate;
         this.endDate = endDate;
+        this.percentageDiscount = percentageDiscount;
+        this.maxDiscount = maxDiscount;
+        this.minPurchase = minPurchase;
     }
 
-    @Override
-    public int compareTo(Promotion other) {
-        return 0;
-    }
+    public abstract String getPromoType();
+
+    public boolean isExpired(LocalDate checkDate) {
+        boolean inside = checkDate.isBefore(startDate);
+
+        return inside;
+}
 
     public String getPromoCode() {
         return promoCode;
-    }
-
-    public void setPromoCode(String promoCode) {
-        this.promoCode = promoCode;
     }
 
     public LocalDate getStartDate() {
         return startDate;
     }
 
-    public void setStartDate(LocalDate startDate) {
-        this.startDate = startDate;
-    }
-
     public LocalDate getEndDate() {
         return endDate;
     }
 
-    public void setEndDate(LocalDate endDate) {
-        this.endDate = endDate;
+    public double getPercentageDiscount() {
+        return percentageDiscount;
+    }
+
+    public double getMaxDiscount() {
+        return maxDiscount;
+    }
+
+    public double getMinPurchase() {
+        return minPurchase;
     }
 }

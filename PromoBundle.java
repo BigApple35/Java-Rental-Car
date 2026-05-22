@@ -16,7 +16,7 @@ public class PromoBundle {
     }
 
     public double calculateDiscountedPrice(Vehicle vehicle) {
-        return vehicle.calculateRentalCost(fixedDurationHours) * (1.0 - discountRate);
+        return vehicle.getPricePerDay() * fixedDurationHours * (1.0 - discountRate);
     }
 
     public void applyConfiguration(RentalTransaction tx, Vehicle vehicle) {
@@ -29,18 +29,13 @@ public class PromoBundle {
 
     public String getBundleCode() { return bundleCode; }
     public void setBundleCode(String bundleCode) { this.bundleCode = bundleCode; }
-
     public String getBundleName() { return bundleName; }
     public void setBundleName(String bundleName) { this.bundleName = bundleName; }
-
     public int getFixedDurationHours() { return fixedDurationHours; }
     public void setFixedDurationHours(int fixedDurationHours) { this.fixedDurationHours = fixedDurationHours; }
-
     public boolean isIncludesDriver() { return includesDriver; }
     public void setIncludesDriver(boolean includesDriver) { this.includesDriver = includesDriver; }
-
     public double getDiscountRate() { return discountRate; }
     public void setDiscountRate(double discountRate) { this.discountRate = discountRate; }
-
     public void setVehicleType(Class<? extends Vehicle> vehicleType) { this.vehicleType = vehicleType; }
 }

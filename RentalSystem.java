@@ -1,384 +1,500 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Scanner;
-import java.util.UUID;
+import java.util.Comparator;
+import java.util.List;
 
 public class RentalSystem {
-    private ArrayList<Vehicle> vehicleList;
-    private ArrayList<PromoBundle> availableBundles;
-    private ArrayList<RentalTransaction> transactions;
-    private ArrayList<Customer> customerList;
-    private ArrayList<Promotion> availablePromotions;
-    private Scanner scanner;
+    private List<Customer> customers;
+    private List<Vehicle> vehicles;
+    private List<Promotion> promotions;
+    private List<Order> allOrders;
+    private List<String> outputs;
 
     public RentalSystem() {
-        vehicleList = new ArrayList<>();
-        availableBundles = new ArrayList<>();
-        transactions = new ArrayList<>();
-        customerList = new ArrayList<>();
-        availablePromotions = new ArrayList<>();
-        scanner = new Scanner(System.in);
-        initializeVehicles();
-        initializeBundles();
-        initializePromotions();
+        customers = new ArrayList<>();
+        vehicles = new ArrayList<>();
+        promotions = new ArrayList<>();
+        allOrders = new ArrayList<>();
+        outputs = new ArrayList<>();
     }
 
-    public void initializeVehicles() {
-        vehicleList.add(new Car("C001", "Toyota", "Avanza", 2022, 50000, 500, "Petrol", 7));
-        vehicleList.add(new Car("C002", "Honda", "Brio", 2023, 40000, 300, "Petrol", 5));
-        vehicleList.add(new Motorcycle("M001", "Yamaha", "R25", 2021, 20000, 250, false, "Sport"));
-        vehicleList.add(new Motorcycle("M002", "Honda", "Vario", 2022, 10000, 150, true, "Standard"));
-    }
-
-    public void initializeBundles() {
-        availableBundles.add(new PromoBundle("BND1", "Weekend Car", 48, false, 0.1, Car.class));
-        availableBundles.add(new PromoBundle("BND2", "Touring Moto", 24, false, 0.15, Motorcycle.class));
-        availableBundles.add(new PromoBundle("BND3", "VIP Car Driver", 12, true, 0.05, Car.class));
-    }
-
-    public void initializePromotions() {
-        availablePromotions.add(new PercentOffPromo("DISC10", LocalDate.now(), LocalDate.now().plusDays(30), 0.10));
-        availablePromotions.add(new CashbackPromo("CASH50", LocalDate.now(), LocalDate.now().plusDays(30), 50000));
-        availablePromotions.add(new FreeShippingPromo("FREESHIP", LocalDate.now(), LocalDate.now().plusDays(30)));
-    }
-
-    public void registerCustomer() {
-        System.out.print("Register as (1) Guest or (2) Member: ");
-        String typeChoice = scanner.nextLine();
-
-        System.out.print("Enter first name: ");
-        String firstName = scanner.nextLine();
-        System.out.print("Enter last name: ");
-        String lastName = scanner.nextLine();
-        System.out.print("Enter email: ");
-        String email = scanner.nextLine();
-        System.out.print("Enter phone: ");
-        String phone = scanner.nextLine();
-
-        String customerId = "CUST-" + (customerList.size() + 1);
-        Customer customer;
-
-        if (typeChoice.equals("2")) {
-            customer = new Member(customerId, firstName, lastName, email, phone, LocalDate.now());
-        } else {
-            customer = new Guest(customerId, firstName, lastName, email, phone);
-        }
-        
-        customerList.add(customer);
-        System.out.println("Customer registered: " + customer.getFullName() + " (" + customerId + ")");
-    }
-
-    public Customer findCustomerById(String customerId) {
-        for (Customer c : customerList) {
-            if (c.getCustomerId().equalsIgnoreCase(customerId)) {
-                return c;
-            }
-        }
-        return null;
-    }
-
-    public void displayCustomers() {
-        if (customerList.isEmpty()) {
-            System.out.println("No customers registered.");
-            return;
-        }
-        System.out.println("ID\tName\tType\tMember Since");
-        for (Customer c : customerList) {
-            String type = (c instanceof Member) ? "Member" : "Guest";
-            if (c instanceof Member) {
-                Member m = (Member) c;
-                System.out.println(c.getCustomerId() + "\t" + c.getFullName() + "\t" + type + "\t" + m.getMemberSince() + ", " + m.getMembershipDuration() + " days");
-            } else {
-                System.out.println(c.getCustomerId() + "\t" + c.getFullName() + "\t" + type + "\t-");
-            }
-        }
-    }
-
-    public void processOrderFlow() {
-        displayCustomers();
-        System.out.print("Enter customer ID: ");
-        String custId = scanner.nextLine();
-        Customer customer = findCustomerById(custId);
-        if (customer == null) {
-            System.out.println("Customer not found.");
-            return;
-        }
-
-        System.out.println("\n--- Available Vehicles ---");
-        for (Vehicle v : vehicleList) {
-            if (v.isAvailable()) {
-                v.displayInfo();
-            }
-        }
-        System.out.print("Enter vehicle ID: ");
-        String vId = scanner.nextLine();
-        Vehicle vehicle = null;
-        for (Vehicle v : vehicleList) {
-            if (v.getVehicleId().equalsIgnoreCase(vId) && v.isAvailable()) {
-                vehicle = v;
-                break;
-            }
-        }
-
-        if (vehicle == null) {
-            System.out.println("Invalid or unavailable vehicle.");
-            return;
-        }
-
-        System.out.print("Enter duration (hours): ");
-        int duration;
-        try {
-            duration = Integer.parseInt(scanner.nextLine());
-        } catch (Exception e) {
-            System.out.println("Invalid duration.");
-            return;
-        }
-
-        Order order;
-        try {
-            order = customer.makeOrder(vehicle, duration);
-        } catch (IllegalStateException e) {
-            System.out.println(e.getMessage());
-            return;
-        }
-
-        System.out.println("Order created. Checking out...");
-        order.checkOut();
-
-        System.out.print("Apply a promo? (y/n): ");
-        if (scanner.nextLine().equalsIgnoreCase("y")) {
-            PercentOffPromo p1 = new PercentOffPromo("PROMO10", LocalDate.now().minusDays(1), LocalDate.now().plusDays(30), 0.10);
-            CashbackPromo p2 = new CashbackPromo("CASH50K", LocalDate.now().minusDays(1), LocalDate.now().plusDays(30), 50000);
-            FreeShippingPromo p3 = new FreeShippingPromo("FREESHIP", LocalDate.now().minusDays(1), LocalDate.now().plusDays(30));
-
-            System.out.println("[1] PROMO10 - 10% off");
-            System.out.println("[2] CASH50K - Cashback 50k");
-            System.out.println("[3] FREESHIP - Free shipping");
-            System.out.print("Choose promo (1-3): ");
-            int pChoice = -1;
-            try {
-                pChoice = Integer.parseInt(scanner.nextLine());
-            } catch (Exception e) {
-            }
-
-            Promotion selectedPromo = null;
-            if (pChoice == 1) selectedPromo = p1;
-            else if (pChoice == 2) selectedPromo = p2;
-            else if (pChoice == 3) selectedPromo = p3;
-
-            if (selectedPromo != null) {
-                if (!selectedPromo.isCustomerEligible(customer) || !selectedPromo.isMinimumPriceEligible(order)) {
-                    System.out.println("Customer not eligible for this promo.");
-                } else {
-                    try {
-                        order.applyPromo(selectedPromo);
-                    } catch (IllegalStateException e) {
-                        System.out.println(e.getMessage());
-                    }
-                }
-            }
-        }
-
-        order.pay();
-        order.printDetails();
-    }
-
-    public void displayAvailableBundles() {
-        System.out.println("\n--- Available Promo Bundles ---");
-        for (PromoBundle bundle : availableBundles) {
-            System.out.printf("[%s] %s%n", bundle.getBundleCode(), bundle.getBundleName());
-            System.out.printf("Duration        : %d HOURS%n", bundle.getFixedDurationHours());
-            System.out.printf("Includes Driver : %s%n", bundle.isIncludesDriver() ? "Yes" : "No");
-            System.out.printf("Discount        : %.0f%%%n%n", bundle.getDiscountRate() * 100);
-        }
-        System.out.println("-------------------------------");
-    }
-
-    public void displayCompatibleVehicles(PromoBundle bundle) {
-        Class<? extends Vehicle> type = bundle.getCompatibleVehicleType();
-        for (Vehicle v : vehicleList) {
-            if (type.isInstance(v) && v.isAvailable()) {
-                v.displayInfo();
-            }
-        }
-    }
-
-    public void processRentalWithBundle() {
-        displayAvailableBundles();
-        System.out.print("Enter bundle code: ");
-        String code = scanner.nextLine();
-        PromoBundle selectedBundle = null;
-        for (PromoBundle b : availableBundles) {
-            if (b.getBundleCode().equalsIgnoreCase(code)) {
-                selectedBundle = b;
-                break;
-            }
-        }
-
-        if (selectedBundle == null) {
-            System.out.println("Invalid bundle code.");
-            return;
-        }
-
-        displayCompatibleVehicles(selectedBundle);
-        System.out.print("Enter vehicle ID: ");
-        String vId = scanner.nextLine();
-        Vehicle selectedVehicle = null;
-        for (Vehicle v : vehicleList) {
-            if (v.getVehicleId().equalsIgnoreCase(vId) && v.isAvailable() && selectedBundle.getCompatibleVehicleType().isInstance(v)) {
-                selectedVehicle = v;
-                break;
-            }
-        }
-
-        if (selectedVehicle == null) {
-            System.out.println("Invalid or unavailable vehicle.");
-            return;
-        }
-
-        Customer c = createCustomerInput();
-        if (c == null) return;
-
-        RentalTransaction tx = new RentalTransaction(UUID.randomUUID().toString(), c, selectedVehicle, LocalDateTime.now(), selectedBundle.getFixedDurationHours());
-        tx.applyBundle(selectedBundle, selectedVehicle);
-        
-        tx.confirmOrder();
-        transactions.add(tx);
-        System.out.println("Rental confirmed.");
-        tx.displayReceipt();
-    }
-
-    public void processRegularRental() {
-        System.out.println("\n--- Available Vehicles ---");
-        for (Vehicle v : vehicleList) {
-            if (v.isAvailable()) {
-                v.displayInfo();
-            }
-        }
-        System.out.println("--------------------------");
-        System.out.print("Enter vehicle ID: ");
-        String vId = scanner.nextLine();
-        Vehicle selectedVehicle = null;
-        for (Vehicle v : vehicleList) {
-            if (v.getVehicleId().equalsIgnoreCase(vId) && v.isAvailable()) {
-                selectedVehicle = v;
-                break;
-            }
-        }
-
-        if (selectedVehicle == null) {
-            System.out.println("Invalid or unavailable vehicle.");
-            return;
-        }
-
-        System.out.print("Enter duration (hours): ");
-        int duration = 0;
-        try {
-            duration = Integer.parseInt(scanner.nextLine());
-        } catch (Exception e) {
-            System.out.println("Invalid duration.");
-            return;
-        }
-
-        Customer c = createCustomerInput();
-        if (c == null) return;
-
-        RentalTransaction tx = new RentalTransaction(UUID.randomUUID().toString(), c, selectedVehicle, LocalDateTime.now(), duration);
-        
-        System.out.print("Include driver? (y/n): ");
-        if (scanner.nextLine().equalsIgnoreCase("y")) {
-            Driver d = new Driver(UUID.randomUUID().toString(), "Available Driver", "D987654V");
-            tx.assignDriver(d);
-        }
-
-        tx.confirmOrder();
-        transactions.add(tx);
-        System.out.println("Rental confirmed.");
-        tx.displayReceipt();
-    }
-
-    private Customer createCustomerInput() {
-        System.out.println("1. Guest");
-        System.out.println("2. Member");
-        System.out.print("Choose customer type: ");
-        String typeChoice = scanner.nextLine();
-
-        System.out.print("Enter first name: ");
-        String firstName = scanner.nextLine();
-        System.out.print("Enter last name: ");
-        String lastName = scanner.nextLine();
-        System.out.print("Enter phone: ");
-        String phone = scanner.nextLine();
-        System.out.print("Enter email: ");
-        String email = scanner.nextLine();
-
-        String customerId = UUID.randomUUID().toString();
-        Customer c;
-
-        if (typeChoice.equals("2")) {
-            System.out.print("Enter join date (yyyy-MM-dd): ");
-            String dateStr = scanner.nextLine();
-            LocalDate joinDate;
-            try {
-                joinDate = LocalDate.parse(dateStr);
-            } catch (Exception e) {
-                System.out.println("Invalid date format.");
-                return null;
-            }
-            c = new Member(customerId, firstName, lastName, email, phone, joinDate);
-        } else {
-            c = new Guest(customerId, firstName, lastName, email, phone);
-        }
-        
-        customerList.add(c);
-        return c;
-    }
-
-    public void showAllTransactions() {
-        if (transactions.isEmpty()) {
-            System.out.println("No transactions.");
-            return;
-        }
-        System.out.println("\n=====================================================================================================================");
-        System.out.printf("%-36s | %-16s | %-20s | %-16s | %-6s | %s%n",
-                "Transaction ID", "Customer", "Vehicle", "Start Date", "Hours", "Total Cost");
-        System.out.println("---------------------------------------------------------------------------------------------------------------------");
-        for (RentalTransaction tx : transactions) {
-            String vehicleName = tx.getVehicle().getBrand() + " " + tx.getVehicle().getModel();
-            String startDateStr = tx.getStartDate().toString().replace("T", " ");
-            if (startDateStr.length() > 16) startDateStr = startDateStr.substring(0, 16);
-            System.out.printf("%-36s | %-16s | %-20s | %-16s | %-6d | Rp %,.2f%n",
-                    tx.getTransactionId(), tx.getCustomer().getFullName(), vehicleName, startDateStr, tx.getDurationHours(), tx.getFinalCost());
-        }
-        System.out.println("=====================================================================================================================\n");
-    }
-
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         RentalSystem system = new RentalSystem();
-        while (true) {
-            System.out.println("\n1. Bundle Rental");
-            System.out.println("2. Regular Rental");
-            System.out.println("3. Show Transactions");
-            System.out.println("4. Register Customer");
-            System.out.println("5. Order Flow");
-            System.out.println("6. View Customers");
-            System.out.println("7. Show Transactions");
-            System.out.println("8. Exit");
-            System.out.print("Choice: ");
-            String choice = system.scanner.nextLine();
-            
-            switch (choice) {
-                case "1": system.processRentalWithBundle(); break;
-                case "2": system.processRegularRental(); break;
-                case "3": system.showAllTransactions(); break;
-                case "4": system.registerCustomer(); break;
-                case "5": system.processOrderFlow(); break;
-                case "6": system.displayCustomers(); break;
-                case "7": system.showAllTransactions(); break;
-                case "8": return;
-                default: System.out.println("Invalid choice");
-            }
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if (line.trim().isEmpty()) break;
+            system.processCommand(line.trim(), reader);
         }
+        for (String output : system.outputs) {
+            System.out.println(output);
+        }
+    }
+
+    private void processCommand(String line, BufferedReader reader) throws IOException {
+        if (line.trim().isEmpty()) return;
+        String[] parts = line.split(" ");
+        String cmd = parts[0];
+
+        if (cmd.equals("CREATE")) {
+            String subCmd = parts[1];
+            if (subCmd.equals("MEMBER")) {
+                String params = line.substring("CREATE MEMBER".length()).trim();
+                if (params.isEmpty()) params = reader.readLine();
+                handleCreateMember(params);
+            } else if (subCmd.equals("GUEST")) {
+                String params = line.substring("CREATE GUEST".length()).trim();
+                if (params.isEmpty()) params = reader.readLine();
+                handleCreateGuest(params);
+            } else if (subCmd.equals("MENU")) {
+                String type = parts[2];
+                String prefix = "CREATE MENU " + type;
+                String params = line.substring(prefix.length()).trim();
+                if (params.isEmpty()) params = reader.readLine();
+                handleCreateMenu(type, params);
+            } else if (subCmd.equals("PROMO")) {
+                String type = parts[2];
+                String prefix = "CREATE PROMO " + type;
+                String params = line.substring(prefix.length()).trim();
+                if (params.isEmpty()) params = reader.readLine();
+                handleCreatePromo(type, params);
+            }
+        } else if (cmd.equals("ADD_TO_CART")) {
+            handleAddToCart(parts);
+        } else if (cmd.equals("REMOVE_FROM_CART")) {
+            handleRemoveFromCart(parts);
+        } else if (cmd.equals("APPLY_PROMO")) {
+            handleApplyPromo(parts);
+        } else if (cmd.equals("TOPUP")) {
+            handleTopup(parts);
+        } else if (cmd.equals("CHECK_OUT")) {
+            handleCheckOut(parts);
+        } else if (cmd.equals("PRINT_HISTORY")) {
+            handlePrintHistory(parts);
+        } else if (cmd.equals("PRINT")) {
+            handlePrint(parts);
+        }
+    }
+
+    private void handleCreateMember(String params) {
+        String[] parts = params.split("\\|");
+        String id = parts[0];
+        String name = parts[1];
+        LocalDate date = LocalDate.parse(parts[2], DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+        double balance = Double.parseDouble(parts[3]);
+        if (findCustomer(id) != null) {
+            outputs.add("CREATE MEMBER FAILED: " + id + " IS EXISTS");
+        } else {
+            customers.add(new Member(id, name, date, balance));
+            outputs.add("CREATE MEMBER SUCCESS: " + id + " " + name);
+        }
+    }
+
+    private void handleCreateGuest(String params) {
+        String[] parts = params.split("\\|");
+        String id = parts[0];
+        double balance = Double.parseDouble(parts[1]);
+        if (findCustomer(id) != null) {
+            outputs.add("CREATE GUEST FAILED: " + id + " IS EXISTS");
+        } else {
+            customers.add(new Guest(id, balance));
+            outputs.add("CREATE GUEST SUCCESS: " + id);
+        }
+    }
+
+    private void handleCreateMenu(String type, String params) {
+        String[] parts = params.split("\\|");
+        String id = parts[0];
+        String name = parts[1];
+        String plate = parts[2];
+        double price = Double.parseDouble(parts[3]);
+        
+        if (findVehicle(id) != null) {
+            outputs.add("CREATE MENU FAILED: " + id + " IS EXISTS");
+            return;
+        }
+        boolean plateExists = vehicles.stream().anyMatch(v -> v.getPlateNumber().equals(plate));
+        if (plateExists) {
+            outputs.add("CREATE MENU FAILED: " + plate + " IS EXISTS");
+            return;
+        }
+
+        if (type.equals("MOTOR")) {
+            vehicles.add(new Motorcycle(id, name, plate, price));
+        } else if (type.equals("MOBIL")) {
+            String customType = parts[4];
+            vehicles.add(new Car(id, name, plate, price, customType));
+        }
+        outputs.add("CREATE MENU SUCCESS: " + id + " " + name + " " + plate);
+    }
+
+    private void handleCreatePromo(String type, String params) {
+        String[] parts = params.split("\\|");
+        String code = parts[0];
+        LocalDate start = LocalDate.parse(parts[1], DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+        LocalDate end = LocalDate.parse(parts[2], DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+        double pct = Double.parseDouble(parts[3].replace("%", "")) / 100.0;
+        double maxDisc = Double.parseDouble(parts[4]);
+        double minPurch = Double.parseDouble(parts[5]);
+
+        if (findPromo(code) != null) {
+            outputs.add("CREATE PROMO " + type + " FAILED: " + code + " IS EXISTS");
+            return;
+        }
+
+        if (type.equals("CASHBACK")) {
+            promotions.add(new CashbackPromo(code, start, end, pct, maxDisc, minPurch));
+        } else if (type.equals("DISCOUNT")) {
+            promotions.add(new PercentOffPromo(code, start, end, pct, maxDisc, minPurch));
+        }
+        outputs.add("CREATE PROMO " + type + " SUCCESS: " + code);
+    }
+
+    private void handleAddToCart(String[] parts) {
+        String customerId = parts[1];
+        String vehicleId = parts[2];
+        int qty = Integer.parseInt(parts[3]);
+        LocalDate startDate = LocalDate.parse(parts[4], DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+        
+        Customer customer = findCustomer(customerId);
+        Vehicle vehicle = findVehicle(vehicleId);
+        
+        if (customer == null || vehicle == null) {
+            outputs.add("ADD_TO_CART FAILED: NON EXISTENT CUSTOMER OR MENU");
+            return;
+        }
+
+        CartItem existingItem = customer.getCurrentCart().stream()
+                .filter(item -> item.getVehicle().getId().equals(vehicleId))
+                .findFirst().orElse(null);
+
+        if (existingItem != null) {
+            existingItem.setQuantity(existingItem.getQuantity() + qty);
+            int newQty = existingItem.getQuantity();
+            String dayStr = newQty == 1 ? "day" : "days";
+            outputs.add("ADD_TO_CART SUCCESS: " + newQty + " " + dayStr + " " + vehicle.getName() + " " + vehicle.getPlateNumber() + " (UPDATED)");
+        } else {
+            CartItem cartItem = new CartItem(vehicle, qty, startDate);
+            customer.getCurrentCart().add(cartItem);
+            String dayStr = qty == 1 ? "day" : "days";
+            outputs.add("ADD_TO_CART SUCCESS: " + qty + " " + dayStr + " " + vehicle.getName() + " " + vehicle.getPlateNumber() + " (NEW)");
+        }
+    }
+
+    private void handleRemoveFromCart(String[] parts) {
+        String customerId = parts[1];
+        String vehicleId = parts[2];
+        int qty = Integer.parseInt(parts[3]);
+        
+        Customer customer = findCustomer(customerId);
+        Vehicle vehicle = findVehicle(vehicleId);
+        
+        if (customer == null || vehicle == null) {
+            outputs.add("REMOVE_FROM_CART FAILED: NON EXISTENT CUSTOMER OR MENU");
+            return;
+        }
+
+        CartItem item = customer.getCurrentCart().stream()
+                .filter(ci -> ci.getVehicle().getId().equals(vehicleId))
+                .findFirst().orElse(null);
+
+        if (item == null) {
+            outputs.add("REMOVE_FROM_CART FAILED: NON EXISTENT CUSTOMER OR MENU");
+            return;
+        }
+
+        int remaining = item.getQuantity() - qty;
+        if (remaining >= 1) {
+            item.setQuantity(remaining);
+            outputs.add("REMOVE_FROM_CART SUCCESS: " + vehicle.getName() + " QUANTITY IS DECREMENTED");
+        } else {
+            customer.getCurrentCart().remove(item);
+            outputs.add("REMOVE_FROM_CART: " + vehicle.getName() + " IS REMOVED");
+        }
+    }
+
+    private void handleApplyPromo(String[] parts) {
+        String customerId = parts[1];
+        String promoCode = parts[2];
+        
+        Customer customer = findCustomer(customerId);
+        Promotion promo = findPromo(promoCode);
+        
+        if (promo == null || customer == null) {
+            outputs.add("APPLY_PROMO FAILED: " + promoCode);
+            return;
+        }
+
+        if (promo.isExpired(LocalDate.now())) {
+            outputs.add("APPLY_PROMO FAILED: " + promoCode + " is EXPIRED");
+            return;
+        }
+        
+        if (!(customer instanceof Member)) {
+            outputs.add("APPLY_PROMO FAILED: " + promoCode);
+            return;
+        }
+        
+        Member member = (Member) customer;
+        if (member.getMembershipDays() <= 30) {
+            outputs.add("APPLY_PROMO FAILED: " + promoCode);
+            return;
+        }
+        
+        double cartSubtotal = customer.getCurrentCart().stream().mapToDouble(CartItem::getSubtotal).sum();
+        if (cartSubtotal < promo.getMinPurchase()) {
+            outputs.add("APPLY_PROMO FAILED: " + promoCode);
+            return;
+        }
+        
+        customer.setAppliedPromo(promo);
+        outputs.add("APPLY_PROMO SUCCESS: " + promoCode);
+    }
+
+    private void handleTopup(String[] parts) {
+        String customerId = parts[1];
+        double amount = Double.parseDouble(parts[2]);
+        
+        Customer customer = findCustomer(customerId);
+        if (customer == null) {
+            outputs.add("TOPUP FAILED: NON EXISTENT CUSTOMER");
+            return;
+        }
+        
+        double oldBalance = customer.getBalance();
+        customer.addBalance(amount);
+        double newBalance = customer.getBalance();
+        outputs.add("TOPUP SUCCESS: " + customer.getName() + " " + formatNumber(oldBalance) + " => " + formatNumber(newBalance));
+    }
+
+    private void handleCheckOut(String[] parts) {
+        String customerId = parts[1];
+        Customer customer = findCustomer(customerId);
+        if (customer == null) {
+            outputs.add("CHECK_OUT FAILED: NON EXISTENT CUSTOMER");
+            return;
+        }
+        
+        List<CartItem> cart = customer.getCurrentCart();
+        if (cart.isEmpty()) {
+            outputs.add("CHECK_OUT FAILED: " + customerId + " " + customer.getName() + " INSUFFICIENT BALANCE");
+            return;
+        }
+
+        Promotion promo = customer.getAppliedPromo();
+        double subtotal = cart.stream().mapToDouble(CartItem::getSubtotal).sum();
+        double totalPrice = subtotal;
+        
+        if (promo instanceof PercentOffPromo) {
+            totalPrice = subtotal - Math.min(subtotal * promo.getPercentageDiscount(), promo.getMaxDiscount());
+        }
+        
+        if (customer.getBalance() < totalPrice) {
+            outputs.add("CHECK_OUT FAILED: " + customerId + " " + customer.getName() + " INSUFFICIENT BALANCE");
+            return;
+        }
+        
+        customer.deductBalance(totalPrice);
+        if (promo instanceof CashbackPromo) {
+            double cashback = Math.min(subtotal * promo.getPercentageDiscount(), promo.getMaxDiscount());
+            customer.addBalance(cashback);
+        }
+        
+        int orderNumber = customer.getOrderHistory().size() + 1;
+        List<CartItem> itemsCopy = new ArrayList<>(cart);
+        Order order = new Order(orderNumber, customer, itemsCopy, LocalDate.now(), promo);
+        
+        customer.getOrderHistory().add(order);
+        allOrders.add(order);
+        customer.getCurrentCart().clear();
+        customer.setAppliedPromo(null);
+        outputs.add("CHECK_OUT SUCCESS: " + customerId + " " + customer.getName());
+    }
+
+    private void handlePrint(String[] parts) {
+        String customerId = parts[1];
+        Customer customer = findCustomer(customerId);
+        if (customer == null) {
+            outputs.add("PRINT FAILED: NON EXISTENT CUSTOMER");
+            return;
+        }
+        
+        boolean hasCart = !customer.getCurrentCart().isEmpty();
+        boolean hasOrders = !customer.getOrderHistory().isEmpty();
+        
+        if (hasCart) {
+            printCartView(customer);
+        } else if (hasOrders) {
+            printOrderView(customer, customer.getOrderHistory().get(customer.getOrderHistory().size() - 1));
+        } else {
+            printCartView(customer);
+        }
+    }
+
+    private void handlePrintHistory(String[] parts) {
+        String customerId = parts[1];
+        Customer customer = findCustomer(customerId);
+        if (customer == null) {
+            outputs.add("PRINT FAILED: NON EXISTENT CUSTOMER");
+            return;
+        }
+        printHistoryView(customer);
+    }
+
+    private void printCartView(Customer customer) {
+        outputs.add("Kode Pemesan: " + customer.getId());
+        outputs.add("Nama: " + customer.getName());
+        
+        List<CartItem> items = new ArrayList<>(customer.getCurrentCart());
+        items.sort(Comparator.comparing(CartItem::getStartDate).thenComparingDouble(CartItem::getSubtotal));
+        
+        outputs.add(String.format("%3s | %-25s | %3s | %8s ", "No", "Menu", "Dur.", "Subtotal"));
+        outputs.add("==================================================");
+        
+        int i = 1;
+        for (CartItem item : items) {
+            String display = item.getVehicle().getName() + " " + item.getVehicle().getPlateNumber();
+            if (display.length() > 25) {
+                display = display.substring(0, 25);
+            }
+            String subtotalStr = formatNumber(item.getSubtotal());
+            outputs.add(String.format("%3d | %-25s | %3d | %8s ", i, display, item.getQuantity(), subtotalStr));
+            String startStr = item.getStartDate().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+            String endStr = item.getEndDate().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+            outputs.add(String.format("%5s %s", " ", startStr + " - " + endStr));
+            i++;
+        }
+        
+        outputs.add("==================================================");
+        
+        double subtotal = items.stream().mapToDouble(CartItem::getSubtotal).sum();
+        outputs.add(String.format("%-32s: %14s", "Sub Total", formatNumber(subtotal)));
+        
+        Promotion promo = customer.getAppliedPromo();
+        if (promo instanceof PercentOffPromo) {
+            double discount = Math.min(subtotal * promo.getPercentageDiscount(), promo.getMaxDiscount());
+            outputs.add(String.format("%-27s: %9s", "PROMO: " + promo.getPromoCode(), formatNumber(-discount)));
+        }
+        
+        outputs.add("==================================================");
+        
+        double total = subtotal;
+        if (promo instanceof PercentOffPromo) {
+            total = subtotal - Math.min(subtotal * promo.getPercentageDiscount(), promo.getMaxDiscount());
+        }
+        outputs.add(String.format("%-32s: %14s", "Total", formatNumber(total)));
+        
+        if (promo instanceof CashbackPromo) {
+            double cashback = Math.min(subtotal * promo.getPercentageDiscount(), promo.getMaxDiscount());
+            outputs.add(String.format("%-27s: %9s", "PROMO: " + promo.getPromoCode(), formatNumber(cashback)));
+        }
+        
+        outputs.add(String.format("%-32s: %14s", "Saldo", formatNumber(customer.getBalance())));
+        outputs.add("");
+    }
+
+    private void printOrderView(Customer customer, Order order) {
+        outputs.add("Kode Pemesan: " + customer.getId());
+        outputs.add("Nama: " + customer.getName());
+        outputs.add("Nomor Pesanan: " + order.getOrderNumber());
+        outputs.add("Tanggal Pesanan: " + formatIndonesianDate(order.getOrderDate()));
+        
+        List<CartItem> items = new ArrayList<>(order.getItems());
+        items.sort(Comparator.comparing(CartItem::getStartDate).thenComparingDouble(CartItem::getSubtotal));
+        
+        outputs.add(String.format("%3s | %-25s | %3s | %8s ", "No", "Menu", "Dur.", "Subtotal"));
+        outputs.add("==================================================");
+        
+        int i = 1;
+        for (CartItem item : items) {
+            String display = item.getVehicle().getName() + " " + item.getVehicle().getPlateNumber();
+            if (display.length() > 25) {
+                display = display.substring(0, 25);
+            }
+            String subtotalStr = formatNumber(item.getSubtotal());
+            outputs.add(String.format("%3d | %-25s | %3d | %8s ", i, display, item.getQuantity(), subtotalStr));
+            String startStr = item.getStartDate().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+            String endStr = item.getEndDate().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+            outputs.add(String.format("%5s %s", " ", startStr + " - " + endStr));
+            i++;
+        }
+        
+        outputs.add("==================================================");
+        
+        double subtotal = items.stream().mapToDouble(CartItem::getSubtotal).sum();
+        outputs.add(String.format("%-32s: %14s", "Sub Total", formatNumber(subtotal)));
+        
+        Promotion promo = order.getPromo();
+        if (promo instanceof PercentOffPromo) {
+            double discount = Math.min(subtotal * promo.getPercentageDiscount(), promo.getMaxDiscount());
+            outputs.add(String.format("%-27s: %9s", "PROMO: " + promo.getPromoCode(), formatNumber(-discount)));
+        }
+        
+        outputs.add("==================================================");
+        
+        double total = subtotal;
+        if (promo instanceof PercentOffPromo) {
+            total = subtotal - Math.min(subtotal * promo.getPercentageDiscount(), promo.getMaxDiscount());
+        }
+        outputs.add(String.format("%-32s: %14s", "Total", formatNumber(total)));
+        
+        if (promo instanceof CashbackPromo) {
+            double cashback = Math.min(subtotal * promo.getPercentageDiscount(), promo.getMaxDiscount());
+            outputs.add(String.format("%-27s: %9s", "PROMO: " + promo.getPromoCode(), formatNumber(cashback)));
+        }
+        
+        outputs.add(String.format("%-32s: %14s", "Saldo", formatNumber(customer.getBalance())));
+        outputs.add("");
+    }
+
+    private String formatIndonesianDate(LocalDate date) {
+        String[] months = {"Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"};
+        return date.getDayOfMonth() + " " + months[date.getMonthValue() - 1] + " " + date.getYear();
+    }
+
+    private void printHistoryView(Customer customer) {
+        outputs.add("Kode Pemesan: " + customer.getId());
+        outputs.add("Nama: " + customer.getName());
+        outputs.add("Saldo: " + formatNumber(customer.getBalance()));
+        outputs.add(String.format("%4s| %10s | %5s | %5s | %8s | %-8s", "No", "No. Pesanan", "Motor", "Mobil", "Subtotal", "PROMO"));
+        outputs.add("=======================================================");
+        
+        int i = 1;
+        for (Order order : customer.getOrderHistory()) {
+            long motorCount = order.getItems().stream().filter(item -> item.getVehicle() instanceof Motorcycle).count();
+            long mobilCount = order.getItems().stream().filter(item -> item.getVehicle() instanceof Car).count();
+            int totalPriceInt = (int) order.getTotalPrice();
+            String promoCode = order.getPromo() != null ? order.getPromo().getPromoCode() : "";
+            outputs.add(String.format("%4d| %11d | %5d | %5d | %8d | %-8s", i, order.getOrderNumber(), motorCount, mobilCount, totalPriceInt, promoCode));
+            i++;
+        }
+        
+        outputs.add("=======================================================");
+    }
+
+    private String formatNumber(double amount) {
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols();
+        symbols.setDecimalSeparator(',');
+        symbols.setGroupingSeparator('.');
+        DecimalFormat formatter = new DecimalFormat("###,###.##", symbols);
+        return formatter.format(amount);
+    }
+
+    private Customer findCustomer(String id) {
+        return customers.stream().filter(c -> c.getId().equals(id)).findFirst().orElse(null);
+    }
+
+    private Vehicle findVehicle(String id) {
+        return vehicles.stream().filter(v -> v.getId().equals(id)).findFirst().orElse(null);
+    }
+
+    private Promotion findPromo(String code) {
+        return promotions.stream().filter(p -> p.getPromoCode().equals(code)).findFirst().orElse(null);
     }
 }

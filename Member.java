@@ -2,30 +2,23 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
 public class Member extends Customer {
-    private LocalDate memberSince;
+    private LocalDate registrationDate;
 
-    public Member(String customerId, String firstName, String lastName, String email, String phoneNumber, LocalDate memberSince) {
-        super(customerId, firstName, lastName, email, phoneNumber);
-        this.memberSince = memberSince;
+    public Member(String id, String name, LocalDate registrationDate, double initialBalance) {
+        super(id, name, initialBalance);
+        this.registrationDate = registrationDate;
     }
 
     @Override
-    public String getFullName() {
-        if (getLastName() != null && !getLastName().trim().isEmpty()) {
-            return getFirstName() + " " + getLastName();
-        }
-        return getFirstName();
+    public String getName() {
+        return name;
     }
 
-    public long getMembershipDuration() {
-        return ChronoUnit.DAYS.between(memberSince, LocalDate.now());
+    public LocalDate getRegistrationDate() {
+        return registrationDate;
     }
 
-    public LocalDate getMemberSince() {
-        return memberSince;
-    }
-
-    public void setMemberSince(LocalDate memberSince) {
-        this.memberSince = memberSince;
+    public long getMembershipDays() {
+        return ChronoUnit.DAYS.between(registrationDate, LocalDate.now());
     }
 }

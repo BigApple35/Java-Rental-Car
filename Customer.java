@@ -1,81 +1,54 @@
+import java.util.List;
+import java.util.ArrayList;
+
 public abstract class Customer {
-    private String customerId;
-    private String firstName;
-    private String lastName;
-    private String email;
-    private String phoneNumber;
-    private Order currentOrder;
+    private String id;
+    protected String name;
+    private double balance;
+    private List<Order> orderHistory;
+    private List<CartItem> currentCart;
+    private Promotion appliedPromo;
 
-    public Customer(String customerId, String firstName, String lastName, String email, String phoneNumber) {
-        this.customerId = customerId;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.email = email;
-        this.phoneNumber = phoneNumber;
+    public Customer(String id, String name, double initialBalance) {
+        this.id = id;
+        this.name = name;
+        this.balance = initialBalance;
+        this.orderHistory = new ArrayList<>();
+        this.currentCart = new ArrayList<>();
+        this.appliedPromo = null;
     }
 
-    public abstract String getFullName();
+    public abstract String getName();
 
-    public Order makeOrder(Vehicle v, int durationHours) {
-        if (this.currentOrder != null && this.currentOrder.getStatus() == OrderStatus.UNPAID) {
-            throw new IllegalStateException("Current order is already set and not yet paid/canceled");
-        }
-        this.currentOrder = new Order(v, durationHours, 1);
-        return this.currentOrder;
+    public double getBalance() {
+        return balance;
     }
 
-    public void confirmPay(int orderNumber) {
-        if (this.currentOrder != null && this.currentOrder.getOrderNumber() == orderNumber) {
-            this.currentOrder.pay();
-            this.currentOrder = null;
-        }
+    public void addBalance(double amount) {
+        this.balance += amount;
     }
 
-    public String getCustomerId() {
-        return customerId;
+    public void deductBalance(double amount) {
+        this.balance -= amount;
     }
 
-    public void setCustomerId(String customerId) {
-        this.customerId = customerId;
+    public String getId() {
+        return id;
     }
 
-    public String getFirstName() {
-        return firstName;
+    public List<Order> getOrderHistory() {
+        return orderHistory;
     }
 
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
+    public List<CartItem> getCurrentCart() {
+        return currentCart;
     }
 
-    public String getLastName() {
-        return lastName;
+    public Promotion getAppliedPromo() {
+        return appliedPromo;
     }
 
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
-
-    public Order getCurrentOrder() {
-        return currentOrder;
-    }
-
-    public void setCurrentOrder(Order currentOrder) {
-        this.currentOrder = currentOrder;
+    public void setAppliedPromo(Promotion promo) {
+        this.appliedPromo = promo;
     }
 }

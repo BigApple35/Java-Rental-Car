@@ -1,0 +1,4 @@
+MOTOR|V001|Honda Beat|N 4321 XY|80000.00|true
+MOTOR|V002|Yamaha NMax|DK 7777 Z|150000.00|true
+MOBIL|V003|Toyota Innova Zenix|N 1234 AB|450000.00|true|MPV
+MOBIL|V004|Honda Civic RS|B 9999 CC|650000.00|true|Sedan

@@ -1,14 +1,11 @@
 public class Guest extends Customer {
 
-    public Guest(String customerId, String firstName, String lastName, String email, String phoneNumber) {
-        super(customerId, firstName, lastName, email, phoneNumber);
+    public Guest(String id, double initialBalance) {
+        super(id, "GUEST", initialBalance);
     }
 
     @Override
-    public String getFullName() {
-        if (getLastName() != null && !getLastName().trim().isEmpty()) {
-            return getFirstName() + " " + getLastName();
-        }
-        return getFirstName();
+    public String getName() {
+        return "GUEST";
     }
 }
